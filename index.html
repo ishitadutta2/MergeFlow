@@ -94,8 +94,40 @@
   .card + .card{margin-top:18px;}
 
   /* Slots */
-  .slots{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:16px;align-items:stretch;}
-  @media (max-width:640px){ .slots{grid-template-columns:minmax(0,1fr);} .swap-col{order:2;padding:2px 0;} .slot-2{order:3;} }
+  .dropzone.compact{min-height:0;padding:16px;flex-direction:row;gap:12px;}
+  .dropzone.compact .slot-empty-icon{width:24px;height:24px;margin:0;}
+  .dropzone.compact .slot-empty-sub{display:none;}
+  .list-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 10px;}
+  .btn-sm{padding:6px 12px;font-size:11.5px;}
+  .file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
+  .file-item{
+    display:flex;align-items:center;gap:10px;
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:12px;
+    padding:10px 12px;position:relative;transition:opacity .15s ease, border-color .15s ease;
+  }
+  .file-item.pending{opacity:0.65;}
+  .file-item.dragging{opacity:0.4;}
+  .file-item.drop-above::before,.file-item.drop-below::after{
+    content:"";position:absolute;left:0;right:0;height:3px;border-radius:2px;background:var(--stamp-green);
+  }
+  .file-item.drop-above::before{top:-6px;}
+  .file-item.drop-below::after{bottom:-6px;}
+  .drag-handle{color:var(--muted);cursor:grab;display:flex;flex-shrink:0;}
+  .drag-handle svg{width:16px;height:16px;}
+  .file-order{
+    font-family:'JetBrains Mono', monospace;font-size:11px;font-weight:700;color:var(--stamp-green);
+    background:rgba(47,93,78,0.1);border-radius:6px;min-width:24px;height:24px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .item-actions{display:flex;gap:2px;flex-shrink:0;}
+  .icon-btn{
+    background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn svg{width:16px;height:16px;}
+  .icon-btn:hover:not(:disabled){color:var(--stamp-green);background:rgba(47,93,78,0.08);}
+  .icon-btn.remove:hover:not(:disabled){color:var(--clay);background:rgba(180,72,61,0.08);}
+  .icon-btn:disabled{opacity:0.3;cursor:not-allowed;}
 
   .slot{
     border:1.5px dashed var(--line);
@@ -185,20 +217,6 @@
     margin-top:10px;
   }
 
-  .swap-col{display:flex;align-items:center;justify-content:center;}
-  .swap-btn{
-    width:38px;height:38px;border-radius:50%;
-    border:1.5px solid var(--line);
-    background:var(--paper-raised);
-    color:var(--ink-soft);
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;
-    transition:border-color .15s ease, color .15s ease, transform .2s ease;
-  }
-  .swap-btn:hover{border-color:var(--stamp-green);color:var(--stamp-green);transform:rotate(180deg);}
-  .swap-btn svg{width:17px;height:17px;}
-  .swap-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
-  .swap-btn:disabled:hover{border-color:var(--line);color:var(--ink-soft);}
 
   input[type=file]{display:none;}
 
@@ -413,7 +431,7 @@
 
   <header>
     <div class="wordmark"><span class="dot"></span>MergeFlow</div>
-    <h1>Merge two PDFs into one.</h1>
+    <h1>Merge as many PDFs as you like.</h1>
     <p class="tagline">No uploads. No servers. No tracking — everything happens in this browser tab.</p>
     <div class="badges">
       <span class="badge">
@@ -433,35 +451,20 @@
 
   <!-- WORKSPACE -->
   <div id="workspaceCard" class="card">
-    <div class="slots">
-      <div class="slot-1-col">
-        <div id="slot1" class="slot" tabindex="0" role="button" aria-label="Upload first PDF">
-          <div class="slot-empty-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9.5 15.5 12 13l2.5 2.5"/></svg>
-          </div>
-          <div class="slot-empty-label">Drop PDF one here</div>
-          <div class="slot-empty-sub">or click to browse</div>
-        </div>
-        <input type="file" id="fileInput1" accept="application/pdf,.pdf" />
+    <div id="dropzone" class="slot dropzone" tabindex="0" role="button" aria-label="Add PDF files">
+      <div class="slot-empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9.5 15.5 12 13l2.5 2.5"/></svg>
       </div>
-
-      <div class="swap-col">
-        <button id="swapBtn" class="swap-btn" disabled title="Swap order" aria-label="Swap order of the two PDFs">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3v14M7 3 3 7M7 3l4 4"/><path d="M17 21V7M17 21l4-4M17 21l-4-4"/></svg>
-        </button>
-      </div>
-
-      <div class="slot-2-col slot-2">
-        <div id="slot2" class="slot" tabindex="0" role="button" aria-label="Upload second PDF">
-          <div class="slot-empty-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9.5 15.5 12 13l2.5 2.5"/></svg>
-          </div>
-          <div class="slot-empty-label">Drop PDF two here</div>
-          <div class="slot-empty-sub">or click to browse</div>
-        </div>
-        <input type="file" id="fileInput2" accept="application/pdf,.pdf" />
-      </div>
+      <div class="slot-empty-label" id="dropLabel">Drop your PDFs here</div>
+      <div class="slot-empty-sub">or click to browse — select as many as you like</div>
     </div>
+    <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple />
+
+    <div class="list-head">
+      <span class="field-label" style="margin:0;">Merge order · drag to reorder</span>
+      <button id="clearBtn" class="btn btn-ghost btn-sm" style="display:none;">Clear all</button>
+    </div>
+    <ol id="fileList" class="file-list" style="display:none;"></ol>
 
     <div id="errorBanner" style="display:none;" class="banner-error">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
@@ -474,7 +477,7 @@
     </div>
 
     <div class="merge-row">
-      <span id="mergeHint" class="merge-hint">Add both PDFs to continue</span>
+      <span id="mergeHint" class="merge-hint">Add at least two PDFs to continue</span>
       <button id="mergeBtn" class="btn btn-primary" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3v7a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V3M12 12v9M8.5 17.5 12 21l3.5-3.5"/></svg>
         Merge PDFs
@@ -563,11 +566,14 @@ const { PDFDocument } = PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const MAX_MB = 50;
 
-const state = { files: [null, null], mergedBlob: null, mergedBytes: null };
+const state = { files: [], mergedBlob: null, mergedBytes: null, mergedUrl: null };
+let nextId = 1;
+let dragId = null;
 
-const slotEls = [document.getElementById('slot1'), document.getElementById('slot2')];
-const inputEls = [document.getElementById('fileInput1'), document.getElementById('fileInput2')];
-const swapBtn = document.getElementById('swapBtn');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileListEl = document.getElementById('fileList');
+const clearBtn = document.getElementById('clearBtn');
 const mergeBtn = document.getElementById('mergeBtn');
 const mergeHint = document.getElementById('mergeHint');
 const outputName = document.getElementById('outputName');
@@ -582,118 +588,177 @@ function fmtSize(bytes){
   if(bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
   return (bytes/(1024*1024)).toFixed(1) + ' MB';
 }
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function showBanner(msg){
   errorBannerText.textContent = msg;
   errorBanner.style.display = 'flex';
   clearTimeout(showBanner._t);
-  showBanner._t = setTimeout(()=>{ errorBanner.style.display='none'; }, 4500);
+  showBanner._t = setTimeout(()=>{ errorBanner.style.display='none'; }, 5000);
 }
 
-function emptySlotHTML(n){
-  return `<div class="slot-empty-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9.5 15.5 12 13l2.5 2.5"/></svg>
-    </div>
-    <div class="slot-empty-label">Drop PDF ${n===0?'one':'two'} here</div>
-    <div class="slot-empty-sub">or click to browse</div>`;
+function moveFile(from, to){
+  if(to < 0 || to >= state.files.length || from === to) return;
+  const [item] = state.files.splice(from, 1);
+  state.files.splice(to, 0, item);
+  renderList();
+}
+function removeFile(id){
+  state.files = state.files.filter(f => f.id !== id);
+  renderList();
 }
 
-function renderSlot(i){
-  const el = slotEls[i];
-  const f = state.files[i];
-  el.classList.remove('error');
-  if(!f){
-    el.classList.remove('filled');
-    el.innerHTML = emptySlotHTML(i);
-    return;
-  }
-  el.classList.add('filled');
-  el.innerHTML = `
-    <div class="slot-num">PDF ${i+1}</div>
-    <div class="slot-file-row">
+function renderList(){
+  fileListEl.innerHTML = '';
+  const n = state.files.length;
+  state.files.forEach((f, i)=>{
+    const li = document.createElement('li');
+    li.className = 'file-item' + (f.pageCount == null ? ' pending' : '');
+    li.draggable = true;
+    li.dataset.id = f.id;
+    const sub = fmtSize(f.file.size) + (f.pageCount != null ? ' · ' + f.pageCount + (f.pageCount===1?' page':' pages') : ' · reading…');
+    li.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+      </span>
+      <span class="file-order">${i+1}</span>
       <svg class="slot-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
       <div class="slot-file-meta">
-        <div class="slot-file-name" title="${f.file.name}">${f.file.name}</div>
-        <div class="slot-file-sub">${fmtSize(f.file.size)}${f.pageCount!=null ? ' · ' + f.pageCount + (f.pageCount===1?' page':' pages') : ' · reading…'}</div>
+        <div class="slot-file-name" title="${esc(f.file.name)}">${esc(f.file.name)}</div>
+        <div class="slot-file-sub">${sub}</div>
       </div>
-      <button class="slot-remove" data-remove="${i}" aria-label="Remove file" title="Remove">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>
-      </button>
-    </div>`;
-  el.querySelector('[data-remove]').addEventListener('click', (e)=>{
-    e.stopPropagation();
-    state.files[i] = null;
-    renderSlot(i);
-    updateMergeState();
+      <div class="item-actions">
+        <button class="icon-btn" data-act="up" aria-label="Move up" title="Move up" ${i===0?'disabled':''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 15l6-6 6 6"/></svg>
+        </button>
+        <button class="icon-btn" data-act="down" aria-label="Move down" title="Move down" ${i===n-1?'disabled':''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="icon-btn remove" data-act="remove" aria-label="Remove file" title="Remove">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>
+        </button>
+      </div>`;
+    li.querySelector('[data-act="up"]').addEventListener('click', ()=> moveFile(i, i-1));
+    li.querySelector('[data-act="down"]').addEventListener('click', ()=> moveFile(i, i+1));
+    li.querySelector('[data-act="remove"]').addEventListener('click', ()=> removeFile(f.id));
+
+    li.addEventListener('dragstart', (e)=>{
+      dragId = f.id;
+      e.dataTransfer.effectAllowed = 'move';
+      try{ e.dataTransfer.setData('text/plain', String(f.id)); }catch(_){}
+      setTimeout(()=> li.classList.add('dragging'), 0);
+    });
+    li.addEventListener('dragend', ()=>{
+      dragId = null;
+      document.querySelectorAll('.file-item').forEach(x => x.classList.remove('dragging','drop-above','drop-below'));
+    });
+    li.addEventListener('dragover', (e)=>{
+      if(dragId == null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const r = li.getBoundingClientRect();
+      const below = e.clientY > r.top + r.height/2;
+      li.classList.toggle('drop-below', below);
+      li.classList.toggle('drop-above', !below);
+    });
+    li.addEventListener('dragleave', ()=> li.classList.remove('drop-above','drop-below'));
+    li.addEventListener('drop', (e)=>{
+      if(dragId == null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const from = state.files.findIndex(x => x.id === dragId);
+      let to = i;
+      const r = li.getBoundingClientRect();
+      const below = e.clientY > r.top + r.height/2;
+      if(from < to && !below) to -= 1;
+      else if(from > to && below) to += 1;
+      dragId = null;
+      moveFile(from, to);
+    });
+    fileListEl.appendChild(li);
   });
+  updateMergeState();
 }
 
 function updateMergeState(){
-  const bothFilled = state.files[0] && state.files[1];
-  mergeBtn.disabled = !bothFilled;
-  swapBtn.disabled = !bothFilled;
-  mergeHint.textContent = bothFilled
-    ? 'Ready — PDF one then PDF two, in that order'
-    : (state.files[0] || state.files[1]) ? 'Add the second PDF to continue' : 'Add both PDFs to continue';
+  const n = state.files.length;
+  const pending = state.files.some(f => f.pageCount == null);
+  fileListEl.style.display = n ? 'flex' : 'none';
+  clearBtn.style.display = n ? 'inline-flex' : 'none';
+  dropzone.classList.toggle('compact', n > 0);
+  document.getElementById('dropLabel').textContent = n ? 'Add more PDFs' : 'Drop your PDFs here';
+  mergeBtn.disabled = n < 2 || pending;
+  if(n === 0) mergeHint.textContent = 'Add at least two PDFs to continue';
+  else if(n === 1) mergeHint.textContent = 'Add at least one more PDF to continue';
+  else if(pending) mergeHint.textContent = 'Reading files…';
+  else {
+    const pages = state.files.reduce((s,f)=> s + f.pageCount, 0);
+    mergeHint.textContent = `${n} PDFs · ${pages} pages · merged top to bottom`;
+  }
 }
 
-async function handleFile(i, file){
-  if(!file) return;
+async function addFile(file){
   const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
   if(!isPdf){
-    showBanner(`"${file.name}" isn't a PDF. Please choose a .pdf file.`);
+    showBanner(`"${file.name}" isn't a PDF. Please choose .pdf files.`);
     return;
   }
   if(file.size > MAX_MB*1024*1024){
     showBanner(`"${file.name}" is over the ${MAX_MB}MB limit.`);
     return;
   }
-  state.files[i] = { file, pageCount: null };
-  renderSlot(i);
-  updateMergeState();
+  const item = { id: nextId++, file, pageCount: null, bytes: null };
+  state.files.push(item);
+  renderList();
   try{
     const buf = await file.arrayBuffer();
     const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
-    if(state.files[i] && state.files[i].file === file){
-      state.files[i].pageCount = doc.getPageCount();
-      state.files[i].bytes = buf;
-      renderSlot(i);
-    }
+    item.pageCount = doc.getPageCount();
+    item.bytes = buf;
   }catch(err){
-    if(state.files[i] && state.files[i].file === file){
-      state.files[i] = null;
-      renderSlot(i);
-      updateMergeState();
-    }
+    state.files = state.files.filter(f => f !== item);
     showBanner(`Couldn't read "${file.name}" — it may be corrupted or password-protected.`);
   }
+  renderList();
 }
 
-slotEls.forEach((el, i)=>{
-  el.addEventListener('click', ()=> inputEls[i].click());
-  el.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); inputEls[i].click(); }});
-  el.addEventListener('dragover', (e)=>{ e.preventDefault(); el.classList.add('drag'); });
-  el.addEventListener('dragleave', ()=> el.classList.remove('drag'));
-  el.addEventListener('drop', (e)=>{
+function addFiles(fileList){
+  Array.from(fileList || []).forEach(addFile);
+}
+
+dropzone.addEventListener('click', ()=> fileInput.click());
+dropzone.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fileInput.click(); }});
+fileInput.addEventListener('change', (e)=>{ addFiles(e.target.files); fileInput.value = ''; });
+
+// Accept file drops on the whole card (but not item reordering)
+['dragover','dragenter'].forEach(ev => workspaceCard.addEventListener(ev, (e)=>{
+  if(dragId != null) return;
+  if(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')){
     e.preventDefault();
-    el.classList.remove('drag');
-    const f = e.dataTransfer.files[0];
-    handleFile(i, f);
-  });
-  inputEls[i].addEventListener('change', (e)=> handleFile(i, e.target.files[0]));
+    dropzone.classList.add('drag');
+  }
+}));
+workspaceCard.addEventListener('dragleave', (e)=>{
+  if(!workspaceCard.contains(e.relatedTarget)) dropzone.classList.remove('drag');
+});
+workspaceCard.addEventListener('drop', (e)=>{
+  if(dragId != null) return;
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  addFiles(e.dataTransfer.files);
 });
 
-swapBtn.addEventListener('click', ()=>{
-  [state.files[0], state.files[1]] = [state.files[1], state.files[0]];
-  renderSlot(0); renderSlot(1);
-});
+clearBtn.addEventListener('click', ()=>{ state.files = []; renderList(); });
 
 mergeBtn.addEventListener('click', async ()=>{
-  if(!state.files[0] || !state.files[1]) return;
+  if(state.files.length < 2) return;
   workspaceCard.style.display = 'none';
   loadingCard.style.display = 'block';
   try{
     const merged = await PDFDocument.create();
+    document.getElementById('loadingText').textContent = 'Combining pages…';
     for(const f of state.files){
       const src = await PDFDocument.load(f.bytes || await f.file.arrayBuffer(), { ignoreEncryption: true });
       const pages = await merged.copyPages(src, src.getPageIndices());
@@ -823,13 +888,12 @@ document.addEventListener('keydown', (e)=>{
 });
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
-  state.files = [null, null];
+  state.files = [];
   state.mergedBlob = null;
   state.mergedBytes = null;
   if(state.mergedUrl){ URL.revokeObjectURL(state.mergedUrl); state.mergedUrl = null; }
   closePreview();
-  renderSlot(0); renderSlot(1);
-  updateMergeState();
+  renderList();
   outputName.value = 'merged-document.pdf';
   resultCard.style.display = 'none';
   workspaceCard.style.display = 'block';
